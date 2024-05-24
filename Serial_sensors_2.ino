@@ -1,17 +1,16 @@
+// в монитор порта вводить 1,1,0,0
+// это переменные  move_trig, LM_trig, weather_val, encoder_val
+// обрабатываются только move_trig, LM_trig
+
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
-#include <avr/power.h>  // Required for 16 MHz Adafruit Trinket
+#include <avr/power.h>
 #endif
-
 
 #define LED_PIN 13
 #define LED_COUNT 60
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-int LED = 13;
-int state = 0;
-
-int button = 4;
 String ledVals = "";
 int delim = 0;
 int move_trig, LM_trig, weather_val, encoder_val;
@@ -19,99 +18,38 @@ int move_trig, LM_trig, weather_val, encoder_val;
 long serial_resieve_time = millis();
 int after_move_time = 1000;
 
+int low_brightness = 10;
+int high_brightness = 200;
+int current_brightness = low_brightness;
 
-int current_brightness = 10;
 
+unsigned long pixelPrevious = 0;
+unsigned long patternPrevious = 0;
+int patternCurrent = 0;
+int patternInterval = 5000;
+bool patternComplete = false;
+
+int pixelInterval = 50;
+int pixelQueue = 0;
+int pixelCycle = 0;
+uint16_t pixelNumber = LED_COUNT;
+
+unsigned long currentMillis = millis();  
+
+int r = 255;
+int g = 255;
+int b = 255;
 
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(10);
 
-  pinMode(LED, OUTPUT);
-  pinMode(button, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
 
   strip.begin();
   strip.show();
   show_default_state();
 }
-
-
-// void loop() {
-
-//   long current_time = millis();
-
-//   if (Serial.available() > 0) {
-//     serial_resieve_time = millis();
-
-//     ledVals = Serial.readString();
-//     Serial.print(ledVals);
-//     Serial.print("-");
-//     delim = 0;
-
-//     delim = ledVals.indexOf(',');
-//     move_trig = ledVals.substring(0, delim).toInt();
-//     ledVals = ledVals.substring(delim + 1, ledVals.length());
-
-//     delim = ledVals.indexOf(',');
-//     LM_trig = ledVals.substring(0, delim).toInt();
-//     ledVals = ledVals.substring(delim + 1, ledVals.length());
-
-//     delim = ledVals.indexOf(',');
-//     weather_val = ledVals.substring(0, delim).toInt();
-//     ledVals = ledVals.substring(delim + 1, ledVals.length());
-
-//     delim = ledVals.indexOf(',');
-//     encoder_val = ledVals.substring(0, delim).toInt();
-//     ledVals = ledVals.substring(delim + 1, ledVals.length());
-
-//     // Serial.print(move_trig);
-//     // Serial.print(LM_trig);
-//     // Serial.print(weather_val);
-//     // Serial.println(encoder_val);
-
-//   }
-//   if (move_trig==1){
-//     strip.setBrightness(200);
-//     strip.show();
-//     if (current_time - serial_resieve_time > after_move_time){
-//       move_trig = 0;
-//     }
-//   } else {
-//     show_default_state();
-//   }
-//   colorWipe(strip.Color(255, 0, 0), 50); // Red
-// }
-
-void show_strip(int r, int g, int b) {
-  for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, strip.Color(r, g, b));
-    strip.show();
-  }
-}
-
-void show_default_state() {
-  current_brightness = 5;
-  show_strip(255, 255, 255);
-}
-
-
-// ------------------------------------------
-unsigned long pixelPrevious = 0;    // Previous Pixel Millis
-unsigned long patternPrevious = 0;  // Previous Pattern Millis
-int patternCurrent = 0;             // Current Pattern Number
-int patternInterval = 5000;         // Pattern Interval (ms)
-bool patternComplete = false;
-
-int pixelInterval = 50;            // Pixel Interval (ms)
-int pixelQueue = 0;                // Pattern Pixel Queue
-int pixelCycle = 0;                // Pattern Pixel Cycle
-uint16_t pixelNumber = LED_COUNT;  // Total Number of Pixe
-
-unsigned long currentMillis = millis();  
-
-int r = 200;
-int g = 250;
-int b = 50;
 
 
 void loop() {
@@ -137,9 +75,9 @@ void loop() {
     strip.clear();
   }
   if (move_trig==1){
-      current_brightness = 200;
+      current_brightness = high_brightness;
       if (currentMillis - serial_resieve_time > after_move_time){
-        current_brightness = 10;
+        current_brightness = low_brightness;
         move_trig = 0;
       }
   }
@@ -152,12 +90,23 @@ void loop() {
       encoder_val=0;
   }
 
-
     switch_states();
 
 }
 
 
+
+void show_strip(int r, int g, int b) {
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(r, g, b));
+    strip.show();
+  }
+}
+
+void show_default_state() {
+  current_brightness = low_brightness;
+  show_strip(255, 255, 255);
+}
 
 
 void switch_states() {// code below assumes 0 <= h < 360. Otherwise wrap the value before
