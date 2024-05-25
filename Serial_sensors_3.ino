@@ -12,8 +12,9 @@
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 String ledVals = "";
+String weatherVals = "";
 int delim = 0;
-int move_trig, LM_trig, weather_val, encoder_val;
+int move_trig, LM_trig, weather_val, encoder_val = 0;
 
 long serial_resieve_time = millis();
 int after_move_time = 1000;
@@ -34,15 +35,18 @@ int pixelQueue = 0;
 int pixelCycle = 0;
 uint16_t pixelNumber = LED_COUNT;
 
-unsigned long currentMillis = millis();  
+unsigned long currentMillis = millis();
 
-int r = 255;
-int g = 255;
-int b = 255;
+int r = 250;
+int g = 250;
+int b = 250;
+
+int weather_num = 0;
+int temperature = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.setTimeout(10);
+  Serial.setTimeout(1);
 
   pinMode(LED_PIN, OUTPUT);
 
@@ -53,9 +57,10 @@ void setup() {
 
 
 void loop() {
-  set_color(10, 0, 200);
+  // set_color(10, 0, 200);
 
   strip.setBrightness(current_brightness);
+
   currentMillis = millis();
   if (patternComplete || (currentMillis - patternPrevious) >= patternInterval) {
     patternComplete = false;
@@ -65,35 +70,40 @@ void loop() {
 
 
   if (Serial.available() > 0) {
-  serial_resieve_time = millis();
-  parse_sensors_data();
-    // patternCurrent = Serial.parseInt();
+    serial_resieve_time = millis();
+    // parse_sensors_data(); // для ввода "1,1,0,0"
+    // weather_by_serial();  // для ввода погоды
+
     if ((patternCurrent > 3) || (patternCurrent <= 0)) {
       patternCurrent = 0;
     }
     patternPrevious = currentMillis;
-    strip.clear();
-  }
-  if (move_trig==1){
-      current_brightness = high_brightness;
-      if (currentMillis - serial_resieve_time > after_move_time){
-        current_brightness = low_brightness;
-        move_trig = 0;
-      }
-  }
-  if (LM_trig==1){
-      patternCurrent++;
-      LM_trig=0;
-  }
-  if (encoder_val==1){
-      set_color(255, 0, 155);
-      encoder_val=0;
+
   }
 
-    switch_states();
-
+  // switch_sensors_states();
+  switch_weather_states();
 }
 
+
+void weather_by_serial() {
+  char separator = '-';
+  weatherVals = Serial.readString();
+  delim = 0;
+
+  delim = weatherVals.indexOf(separator);
+  temperature = weatherVals.substring(0, delim).toFloat();
+  weatherVals = weatherVals.substring(delim + 1, weatherVals.length());
+  
+  delim = weatherVals.indexOf(separator);
+  weather_num = weatherVals.substring(0, delim).toInt();
+  weatherVals = weatherVals.substring(delim + 1, weatherVals.length());
+
+  // Serial.print(temperature);
+  // Serial.print("-");
+  // Serial.println(weather_num);
+
+}
 
 
 void show_strip(int r, int g, int b) {
@@ -105,41 +115,98 @@ void show_strip(int r, int g, int b) {
 
 void show_default_state() {
   current_brightness = low_brightness;
-  show_strip(255, 255, 255);
+  show_strip(250, 250, 250);
 }
 
 
-void switch_states() {// code below assumes 0 <= h < 360. Otherwise wrap the value before
+void switch_sensors_states() { 
+  if (move_trig == 1) {
+    current_brightness = high_brightness;
+    if (currentMillis - serial_resieve_time > after_move_time) {
+      current_brightness = low_brightness;
+      move_trig = 0;
+    }
+  }
+  if (LM_trig == 1) {
+    patternCurrent++;
+    LM_trig = 0;
+  }
+  if (encoder_val == 1) {
+    set_color(250, 0, 150);
+    encoder_val = 0;
+  }
 
-  if (currentMillis - pixelPrevious >= pixelInterval) {  //  Check for expired time
-    pixelPrevious = currentMillis;                       //  Run current frame
+  if (currentMillis - pixelPrevious >= pixelInterval) { 
+    pixelPrevious = currentMillis;
     switch (patternCurrent) {
       case 3:
-        theaterChaseRainbow(50);  // Rainbow-enhanced theaterChase variant
+        theaterChaseRainbow(50);
         break;
       case 2:
-        rainbow(10);  // Flowing rainbow cycle along the whole strip
+        rainbow(10);
         break;
       case 1:
-        theaterChase(strip.Color(r,g,b), 50);
+        theaterChase(strip.Color(r, g, b), 50);
         break;
       default:
-        show_strip(r,g,b);
+        show_default_state();
         break;
     }
   }
 }
 
+
+void switch_weather_states() { 
+  
+  if (Serial.available() > 0) {
+    // char separator = '-';
+    // weatherVals = Serial.readString();
+    // delim = 0;
+
+    // delim = weatherVals.indexOf(separator);
+    // temperature = weatherVals.substring(0, delim).toInt();
+    // weatherVals = weatherVals.substring(delim + 1, weatherVals.length());
+    
+    // delim = weatherVals.indexOf(separator);
+    // weather_num = weatherVals.substring(0, delim).toInt();
+    // weatherVals = weatherVals.substring(delim + 1, weatherVals.length());
+    
+    weather_num = Serial.parseInt();
+  }
+
+
+
+  Serial.println(weather_num);
+  // if (currentMillis - pixelPrevious >= pixelInterval) { 
+  //   pixelPrevious = currentMillis;
+    switch (weather_num) {
+      case 2: // rain
+        set_color(80, 120, 250);
+        break;
+      case 1: // clouds
+        set_color(210, 220, 250);
+        break;
+      case 0: // clear
+        rainbow(10);
+        // set_color(250, 250, 0);
+        break;
+      default:
+        show_strip(r, g, b);
+        break;
+    }
+  // }
+}
+
 void set_color(int red, int green, int blue) {
-  if ( r != red || g != green || b != blue ) {
-    if ( r < red ) r += 1;
-    if ( r > red ) r -= 1;
+  if (r != red || g != green || b != blue) {
+    if (r < red) r += 10;
+    if (r > red) r -= 10;
 
-    if ( g < green ) g += 1;
-    if ( g > green ) g -= 1;
+    if (g < green) g += 10;
+    if (g > green) g -= 10;
 
-    if ( b < blue ) b += 1;
-    if ( b > blue ) b -= 1;
+    if (b < blue) b += 10;
+    if (b > blue) b -= 10;
   }
 }
 
