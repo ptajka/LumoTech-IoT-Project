@@ -4,7 +4,6 @@ import requests
 import serial
 import time
 
-arduino = serial.Serial(port='COM9', baudrate=9600, timeout=.1)
 
 
 # Проверка наличия в базе информации о нужном населенном пункте
@@ -53,9 +52,10 @@ def write_read(x):
     return data
 
 
+arduino = serial.Serial(port='COM9', baudrate=9600, timeout=.1)
 
-# city = input('Введите город: ')
-city = 'Иркутск'
+city = input('Введите город: ')
+# city = 'Иркутск'
 # city = 'Москва'
 city_id = get_city_id(city)
 temperature, weather_num = request_current_weather(city_id)
