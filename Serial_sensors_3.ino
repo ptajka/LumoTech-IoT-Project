@@ -1,7 +1,3 @@
-// в монитор порта вводить 1,1,0,0
-// это переменные  move_trig, LM_trig, weather_val, encoder_val
-// обрабатываются только move_trig, LM_trig
-
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
 #include <avr/power.h>
@@ -120,6 +116,9 @@ void show_default_state() {
 
 
 void switch_sensors_states() { 
+  // в монитор порта вводить 1,1,0,0
+  // это переменные  move_trig, LM_trig, weather_val, encoder_val
+  // обрабатываются только move_trig, LM_trig
   if (move_trig == 1) {
     current_brightness = high_brightness;
     if (currentMillis - serial_resieve_time > after_move_time) {
@@ -159,6 +158,7 @@ void switch_sensors_states() {
 void switch_weather_states() { 
   
   if (Serial.available() > 0) {
+    // --- передавать температуру и погоду через separator
     // char separator = '-';
     // weatherVals = Serial.readString();
     // delim = 0;
@@ -171,17 +171,18 @@ void switch_weather_states() {
     // weather_num = weatherVals.substring(0, delim).toInt();
     // weatherVals = weatherVals.substring(delim + 1, weatherVals.length());
     
+    // --- передавать только погоду
     weather_num = Serial.parseInt();
+    Serial.println(weather_num);
+
   }
 
 
-
-  Serial.println(weather_num);
-  // if (currentMillis - pixelPrevious >= pixelInterval) { 
-  //   pixelPrevious = currentMillis;
     switch (weather_num) {
       case 2: // rain
-        set_color(80, 120, 250);
+        show_strip(0,100,255);
+        // theaterChase(strip.Color(r, g, b), 50);
+        // set_color(80, 120, 250);
         break;
       case 1: // clouds
         set_color(210, 220, 250);
@@ -194,7 +195,6 @@ void switch_weather_states() {
         show_strip(r, g, b);
         break;
     }
-  // }
 }
 
 void set_color(int red, int green, int blue) {
@@ -209,10 +209,6 @@ void set_color(int red, int green, int blue) {
     if (b > blue) b -= 10;
   }
 }
-
-
-
-
 
 
 void parse_sensors_data() {
