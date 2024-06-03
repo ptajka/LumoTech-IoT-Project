@@ -64,11 +64,12 @@ def get_weather():
     city_id = get_city_id(city)
     temperature, weather_num = request_current_weather(city_id)
 
-    separator = '-'
+    separator = ','
     # temperature = int(temperature)
     weather_string = f'{temperature}{separator}{weather_num}'
-    weather_data = weather_num
-    return weather_data
+    return [temperature, weather_num]
+    # weather_data = weather_num
+    # return weather_data
 
 
 #-----------------------------------------------------------
@@ -76,6 +77,7 @@ broker="broker.emqx.io"
 topic_leap_motion = "leap_motion_states"
 
 def on_message(client, userdata, message):
+    global data
     data = str(message.payload.decode("utf-8"))
     send_MQTT(data)
     
@@ -101,9 +103,9 @@ def mqtt_connection():
 
 #-----------------------------------------------------------
 def send_weather():
-    weather_num = get_weather()   
-    value_from_arduino = serial_write_and_read(str(weather_num))
-    print(f'weather_num = {weather_num}')
+    weather_str = get_weather()   
+    value_from_arduino = serial_write_and_read(str(weather_str))
+    print(f'weather = {weather_str}')
     print(f'weather from arduino = {value_from_arduino}')
 
 def send_MQTT(data):
@@ -111,4 +113,14 @@ def send_MQTT(data):
     print(f'MQTT data = {data}')
     print(f'MQTT data from arduino = {value_from_arduino}')
 
-# def send_mqtt_and_weather():
+def send_mqtt_and_weather():
+    separator = ','
+    temperature, weather_num = get_weather()
+    LM_state = 0
+    # LM_state = data
+    serial_string = f'{LM_state}{separator}{temperature}{separator}{weather_num}'
+    value_from_arduino = serial_write_and_read(serial_string)
+    print(f'serial_string = {serial_string}')
+    print(f'string from arduino = {value_from_arduino}')
+
+send_mqtt_and_weather()
