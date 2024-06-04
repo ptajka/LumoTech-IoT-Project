@@ -5,6 +5,7 @@
 #include <FastLED.h>
 
 #define NUM_LEDS 60
+#define FRAMES_PER_SECOND  120
 CRGB leds[NUM_LEDS];
 
 static uint16_t x;
@@ -43,6 +44,8 @@ uint8_t hue_saturation = 0;
 uint8_t hue_value = 0;
 uint8_t color_scale = 1;
 
+uint8_t gHue = 0;
+
 void setup() {
   Serial.begin(9600);
   delay(3000);
@@ -65,25 +68,8 @@ void fillnoise8() {
     noise[i] = inoise8(x + ioffset, 0, z);
   }
   z += speed;
-}
 
-
-void loop() {
-  get_encoder_value();
-  set_brightness_by_encoder();
-
-
-  if (Serial.available() > 0) {
-    sensors_and_weather_by_serial();
-  }
-
-  // speed = 1;
-  // scale = 10;
-  // color_scale = 1;
-
-  set_LM_state();
-
-  fillnoise8();
+  
   for (int i = 0; i < 60; i++) {
     hue = ihue + (noise[i] >> color_scale) + hue_offset;
     hue_value = noise[i];
@@ -102,29 +88,62 @@ void loop() {
     } 
     leds[i] = CHSV(hue, hue_saturation, hue_value);
   }
-  
+}
+
+
+void loop() {
+  FastLED.delay(1000/FRAMES_PER_SECOND); 
+
+  get_encoder_value();
+  // set_brightness_by_encoder();
+
+  if (Serial.available() > 0) {
+    sensors_and_weather_by_serial();
+  }
+
+  // speed = 1;
+  // scale = 10;
+  // color_scale = 1;
+
+  set_LM_state();
   FastLED.show();
 }
 
 
 void set_LM_state() {
+  if(LM_state > 1){
+      hue_saturation = 255;
+  }
   switch (LM_state) {
+    case 6:
+      rainbow();
+      break;
+    case 5:
+      juggle();
+      break;
+    case 4:
+      rainbowWithGlitter();
+      break;
+    case 3:
+      sinelon();
+      break;
     case 2:
-    // 
-      ihue = 60;
-      hue_saturation = 160;
+      confetti();
       break;
     case 1:
     // белый
       ihue = 0;
       hue_saturation = 0;
+      fillnoise8();
       break;
     case 0:
     // цвета зависят от погоды
+      fillnoise8();
       set_weather_num();
       set_color_by_temperature();
       break;
     default:
+      fillnoise8();
       set_weather_num();
       set_color_by_temperature();
       break;
@@ -134,7 +153,7 @@ void set_LM_state() {
 void set_weather_num() {
   switch (weather_num) {
     case 2:
-      // Rain / Snow
+      // Rain, Snow
       speed = 4;
       scale = 150;
       color_scale = 5;
@@ -228,15 +247,76 @@ void get_encoder_value() {
     }
     lastButtonPress = millis();
   }
+  set_brightness_by_encoder();
 }
 
 void set_brightness_by_encoder() {
   if (counter > 255) {
-    BRIGHTNESS = 255;
+    counter = 255;
   } else if (counter < 0) {
-    BRIGHTNESS = 0;
-  } else {
-    BRIGHTNESS = counter;
+    counter = 0;
   }
+  BRIGHTNESS = counter;
   FastLED.setBrightness(BRIGHTNESS);
+}
+
+
+
+
+
+void rainbow() 
+{
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  fill_rainbow( leds, NUM_LEDS, gHue, 7);
+}
+
+void rainbowWithGlitter() 
+{
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  rainbow();
+  addGlitter(80);
+}
+
+void addGlitter( fract8 chanceOfGlitter) 
+{
+  if( random8() < chanceOfGlitter) {
+    leds[ random16(NUM_LEDS) ] += CRGB::White;
+  }
+}
+
+void confetti() 
+{
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  fadeToBlackBy( leds, NUM_LEDS, 10);
+  int pos = random16(NUM_LEDS);
+  leds[pos] += CHSV( gHue + random8(64), 200, 255);
+}
+
+void sinelon()
+{
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  int pos = beatsin16( 13, 0, NUM_LEDS-1 );
+  leds[pos] += CHSV( gHue, 255, 192);
+}
+
+void bpm()
+{
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  uint8_t BeatsPerMinute = 62;
+  CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
+  }
+}
+
+void juggle() {
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  uint8_t dothue = 0;
+  for( int i = 0; i < 8; i++) {
+    leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
 }
