@@ -1,21 +1,31 @@
 appid = '9d763e7cd096892b5a50b5df25faf8ed'# полученный при регистрации на OpenWeatherMap.org. Что-то вроде такого набора букв и цифр: '6d8e495ca73d5bbc1d6bf8ebd52c4123'
 
 import requests
-import serial
-import time
+import serial, serial.tools.list_ports
+import time, random
 import paho.mqtt.client as mqtt_client
-import random
 
+def find_COM_port():
+    try:
+        # Find and open the COM port
+        ports = serial.tools.list_ports.comports()
+        port = next((p.device for p in ports), None)
+        if port is None:
+            raise ValueError("No COM port found.")
+        arduino = serial.Serial(port, baudrate=9600)
+    except ValueError as ve:
+        print("Error:", str(ve))
+    except serial.SerialException as se:
+        print("Serial port error:", str(se))
+    except Exception as e:
+        print("An error occurred:", str(e))
+    return arduino
 
 def serial_write_and_read(x):
     arduino.write(bytes(x, 'utf-8'))
     time.sleep(0.05)
     data = arduino.readline()
     return data
-
-
-arduino = serial.Serial(port='COM9', baudrate=9600, timeout=.1)
-
 
 #-----------------------------------------------------------
 def get_city_id(s_city_name):
@@ -75,8 +85,6 @@ def get_weather():
 
 
 #-----------------------------------------------------------
-broker="broker.emqx.io"
-topic_leap_motion = "leap_motion_states"
 
 def on_message(client, userdata, message):
     global data
@@ -125,4 +133,9 @@ def send_mqtt_and_weather():
     print(f'serial_string = {serial_string}')
     print(f'string from arduino = {value_from_arduino}')
 
+
+broker="broker.emqx.io"
+topic_leap_motion = "leap_motion_states"
+
+arduino = find_COM_port()
 send_mqtt_and_weather()
