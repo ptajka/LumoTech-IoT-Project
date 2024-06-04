@@ -18,8 +18,8 @@ arduino = serial.Serial(port='COM9', baudrate=9600, timeout=.1)
 
 
 #-----------------------------------------------------------
-# Проверка наличия в базе информации о нужном населенном пункте
 def get_city_id(s_city_name):
+    # Проверка наличия в базе информации о нужном населенном пункте
     try:
         res = requests.get('http://api.openweathermap.org/data/2.5/find',
                      params={'q': s_city_name, 'type': 'like', 'units': 'metric', 'lang': 'ru', 'APPID': appid})
@@ -36,10 +36,10 @@ def get_city_id(s_city_name):
     return city_id
 
 
-# Запрос текущей погоды
 def request_current_weather(city_id):
-    weather_descriptions_array = ['Clear', 'Clouds', 'Rain'] # номер погоды от 0 до 2, 3 варианта
-    weather_descriptions_array = ['Clear', 'Clouds', 'Rain', 'Snow', 'Atmosphere', 'Drizzle', 'Thunderstorm'] # номер погоды от 0 до 7 (8 вариантов)
+    # Запрос текущей погоды
+    weather_descriptions_array = ['Clear', 'Clouds', 'Rain'] # номер погоды от 0 до 2, три варианта
+    weather_descriptions_array = ['Clear', 'Clouds', 'Rain', 'Snow', 'Atmosphere', 'Drizzle', 'Thunderstorm'] # все варианты, 3-7 отмечаются как дождь (2)
     try:
         res = requests.get('http://api.openweathermap.org/data/2.5/weather',
                      params={'id': city_id, 'units': 'metric', 'lang': 'ru', 'APPID': appid})
@@ -47,6 +47,8 @@ def request_current_weather(city_id):
         # weather = data['weather'][0]['description'] # точное описание погоды
         weather = data['weather'][0]['main'] #общее описание погоды
         weather_num = weather_descriptions_array.index(weather)
+        if (weather_num>2):
+            weather_num = 2
         temperature = data['main']['temp']
         # print('conditions:', weather)
         # print('номер в массиве:', weather_num)
