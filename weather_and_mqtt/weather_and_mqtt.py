@@ -66,8 +66,7 @@ def request_current_weather(city_id):
         print('Exception (weather):', e)
         pass
 
-def get_weather():
-    city = input('Введите город: ')
+def get_weather(city):
     # city = 'Иркутск'
     # city = 'Москва'
     city_id = get_city_id(city)
@@ -90,7 +89,8 @@ def send_MQTT(data):
 def on_message(client, userdata, message):
     global LM_state
     LM_state = str(message.payload.decode("utf-8"))
-    send_MQTT(LM_state)
+    print(LM_state)
+    # send_MQTT(LM_state)
     
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -120,9 +120,9 @@ def send_weather():
     # print(f'weather from arduino = {value_from_arduino}')
 
 
-def send_mqtt_and_weather(LM_state):
+def send_mqtt_and_weather(LM_state, city):
     separator = ','
-    temperature, weather_num = get_weather()
+    temperature, weather_num = get_weather(city)
     serial_string = f'{LM_state}{separator}{temperature}{separator}{weather_num}'
     value_from_arduino = serial_write(serial_string)
     print(f'serial_string = {serial_string}')
@@ -138,22 +138,40 @@ def serial_read():
     return data
 #-----------------------------------------------------------
 
-# подключение к порту Arduino
-for COM_port in serial.tools.list_ports.comports():
-    # print(COM_port.device)
-    COM_port = COM_port.device
-    try:
-        arduino = serial.Serial(port=COM_port, baudrate=9600)
-    except:
-        continue
+def find_COM_port():
+    # подключение к порту Arduino
+    for COM_port in serial.tools.list_ports.comports():
+        # print(COM_port.device)
+        COM_port = COM_port.device
+        try:
+            arduino = serial.Serial(port=COM_port, baudrate=9600)
+        except:
+            continue
+    return arduino
 
 broker="broker.emqx.io"
 LM_topic = "leap_motion_states"
 
 
-LM_state =0
-# mqtt_connection(LM_topic)
-# send_mqtt_and_weather(LM_state)
+LM_state = 0
+
+
+client= mqtt_client.Client(f'client_{random.randint(10000, 99999)}') 
+client.on_message=on_message
+client.on_connect=on_connect
+client.connect(broker) 
+client.loop_start()
+client.subscribe(LM_topic)
+
+# city = input('Введите город: ')
+city = 'Иркутск'
+
+arduino = find_COM_port()
+LM_state = int(float(LM_state))
+send_mqtt_and_weather(LM_state, city)
+
+# client.disconnect()
+# client.loop_stop()
 # print(LM_state)
 
 # while True:
