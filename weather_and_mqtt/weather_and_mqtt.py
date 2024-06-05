@@ -151,8 +151,10 @@ broker="broker.emqx.io"
 LM_topic = "leap_motion_states"
 
 
-mqtt_connection(LM_topic)
-send_mqtt_and_weather(LM_state)
-print(LM_state)
+LM_state =0
+# mqtt_connection(LM_topic)
+# send_mqtt_and_weather(LM_state)
+# print(LM_state)
+
 # while True:
 #     time.sleep(0.05)
