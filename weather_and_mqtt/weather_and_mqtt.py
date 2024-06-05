@@ -5,27 +5,24 @@ import serial, serial.tools.list_ports
 import time, random
 import paho.mqtt.client as mqtt_client
 
-def find_COM_port():
-    try:
-        # Find and open the COM port
-        ports = serial.tools.list_ports.comports()
-        port = next((p.device for p in ports), None)
-        if port is None:
-            raise ValueError("No COM port found.")
-        arduino = serial.Serial(port, baudrate=9600)
-    except ValueError as ve:
-        print("Error:", str(ve))
-    except serial.SerialException as se:
-        print("Serial port error:", str(se))
-    except Exception as e:
-        print("An error occurred:", str(e))
-    return arduino
+# def find_COM_port():
+#     try:
+#         # Find and open the COM port
+#         ports = serial.tools.list_ports.comports()
+#         port = next((p.device for p in ports), None)
+#         if port is None:
+#             raise ValueError("No COM port found.")
+#         arduino = serial.Serial(port, baudrate=9600)
+#     except ValueError as ve:
+#         print("Error:", str(ve))
+#     except serial.SerialException as se:
+#         print("Serial port error:", str(se))
+#     except Exception as e:
+#         print("An error occurred:", str(e))
+#     return arduino
 
-def serial_write_and_read(x):
-    arduino.write(bytes(x, 'utf-8'))
-    time.sleep(0.05)
-    data = arduino.readline()
-    return data
+
+
 
 #-----------------------------------------------------------
 def get_city_id(s_city_name):
@@ -85,11 +82,15 @@ def get_weather():
 
 
 #-----------------------------------------------------------
+def send_MQTT(data):
+    value_from_arduino = serial_write(str(data))
+    print(f'MQTT data = {data}')
+    # print(f'MQTT data from arduino = {value_from_arduino}')
 
 def on_message(client, userdata, message):
-    global data
-    data = str(message.payload.decode("utf-8"))
-    send_MQTT(data)
+    global LM_state
+    LM_state = str(message.payload.decode("utf-8"))
+    send_MQTT(LM_state)
     
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -97,15 +98,15 @@ def on_connect(client, userdata, flags, rc):
     else:
         print("Failed to connect, return code %d\n", rc)
 
-def mqtt_connection():
+def mqtt_connection(topic):
     client= mqtt_client.Client(f'client_{random.randint(10000, 99999)}') 
     client.on_message=on_message
     client.on_connect=on_connect
 
     client.connect(broker) 
     client.loop_start()
-    client.subscribe(topic_leap_motion)
-    # client.publish(topic_leap_motion, value)
+    client.subscribe(topic)
+    # client.publish(topic, value)
     time.sleep(50)
     client.disconnect()
     client.loop_stop()
@@ -114,28 +115,44 @@ def mqtt_connection():
 #-----------------------------------------------------------
 def send_weather():
     weather_str = get_weather()   
-    value_from_arduino = serial_write_and_read(str(weather_str))
+    value_from_arduino = serial_write(str(weather_str))
     print(f'weather = {weather_str}')
-    print(f'weather from arduino = {value_from_arduino}')
+    # print(f'weather from arduino = {value_from_arduino}')
 
-def send_MQTT(data):
-    value_from_arduino = serial_write_and_read(str(data))
-    print(f'MQTT data = {data}')
-    print(f'MQTT data from arduino = {value_from_arduino}')
 
-def send_mqtt_and_weather():
+def send_mqtt_and_weather(LM_state):
     separator = ','
     temperature, weather_num = get_weather()
-    LM_state = 0
-    # LM_state = data
     serial_string = f'{LM_state}{separator}{temperature}{separator}{weather_num}'
-    value_from_arduino = serial_write_and_read(serial_string)
+    value_from_arduino = serial_write(serial_string)
     print(f'serial_string = {serial_string}')
-    print(f'string from arduino = {value_from_arduino}')
+    # print(f'string from arduino = {value_from_arduino}')
 
+
+#-----------------------------------------------------------
+def serial_write(data):
+    arduino.write(bytes(data, 'utf-8'))
+    
+def serial_read():
+    data = arduino.readline()
+    return data
+#-----------------------------------------------------------
+
+# подключение к порту Arduino
+for COM_port in serial.tools.list_ports.comports():
+    # print(COM_port.device)
+    COM_port = COM_port.device
+    try:
+        arduino = serial.Serial(port=COM_port, baudrate=9600)
+    except:
+        continue
 
 broker="broker.emqx.io"
-topic_leap_motion = "leap_motion_states"
+LM_topic = "leap_motion_states"
 
-arduino = find_COM_port()
-send_mqtt_and_weather()
+
+mqtt_connection(LM_topic)
+send_mqtt_and_weather(LM_state)
+print(LM_state)
+# while True:
+#     time.sleep(0.05)
