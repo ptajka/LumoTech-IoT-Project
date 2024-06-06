@@ -4,6 +4,7 @@ import requests
 import serial, serial.tools.list_ports
 import time, random
 import paho.mqtt.client as mqtt_client
+import paho.mqtt.subscribe as subscribe
 
 # def find_COM_port():
 #     try:
@@ -122,10 +123,15 @@ def send_weather():
 
 def send_mqtt_and_weather(LM_state, city):
     separator = ','
-    temperature, weather_num = get_weather(city)
-    serial_string = f'{LM_state}{separator}{temperature}{separator}{weather_num}'
+    print(f'Текущий режим: ({LM_state}){LM_states[LM_state]}')
+
+    if LM_state==0:
+        temperature, weather_num = get_weather(city)
+        serial_string = f'{LM_state}{separator}{temperature}{separator}{weather_num}'
+    else:
+        serial_string = f'{LM_state}{separator}0{separator}0'
     value_from_arduino = serial_write(serial_string)
-    print(f'serial_string = {serial_string}')
+    print(f'По serial отправлена строка {serial_string}')
     # print(f'string from arduino = {value_from_arduino}')
 
 
@@ -154,6 +160,7 @@ LM_topic = "leap_motion_states"
 
 
 LM_state = 0
+LM_states = ['Погода', 'Белый', 'Радуга', 'Синий', 'Конфетти', 'Красный', 'Синелон', 'Голубой', 'Джагл']
 
 
 client= mqtt_client.Client(f'client_{random.randint(10000, 99999)}') 
@@ -161,14 +168,15 @@ client.on_message=on_message
 client.on_connect=on_connect
 client.connect(broker) 
 client.loop_start()
-client.subscribe(LM_topic)
 
 # city = input('Введите город: ')
 city = 'Иркутск'
 
 arduino = find_COM_port()
-LM_state = int(float(LM_state))
-send_mqtt_and_weather(LM_state, city)
+
+while True:
+    LM_state = subscribe.simple(LM_topic, hostname=broker)
+    send_mqtt_and_weather(int(float(LM_state.payload)), city)
 
 # client.disconnect()
 # client.loop_stop()
