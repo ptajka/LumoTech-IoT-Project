@@ -95,15 +95,11 @@ void loop() {
   FastLED.delay(1000/FRAMES_PER_SECOND); 
 
   get_encoder_value();
-  // set_brightness_by_encoder();
+  set_brightness_by_encoder();
 
   if (Serial.available() > 0) {
     sensors_and_weather_by_serial();
   }
-
-  // speed = 1;
-  // scale = 10;
-  // color_scale = 1;
 
   set_LM_state();
   FastLED.show();
@@ -111,24 +107,46 @@ void loop() {
 
 
 void set_LM_state() {
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
   if(LM_state > 1){
       hue_saturation = 255;
   }
   switch (LM_state) {
-    case 6:
-      rainbow();
-      break;
-    case 5:
+    case 8:
       juggle();
       break;
-    case 4:
-      rainbowWithGlitter();
+    case 7:
+    // голубой
+      fillnoise8();
+      temperature = -1;
+      weather_num = 1;
+      set_weather_num();
+      set_color_by_temperature();
       break;
-    case 3:
+    case 6:
       sinelon();
       break;
-    case 2:
+    case 5:
+    // красный
+      fillnoise8();
+      temperature = 30;
+      weather_num = 2;
+      set_weather_num();
+      set_color_by_temperature();
+      break;
+    case 4:
       confetti();
+      break;
+    case 3:
+    // синий
+      fillnoise8();
+      temperature = -30;
+      weather_num = 1;
+      set_weather_num();
+      set_color_by_temperature();
+      break;
+    case 2:
+      rainbow();
       break;
     case 1:
     // белый
@@ -220,11 +238,11 @@ void sensors_and_weather_by_serial() {
   weather_num = serialString.substring(0, delim).toInt();
   serialString = serialString.substring(delim + 1, serialString.length());
 
-  Serial.print(LM_state);
-  Serial.print(separator);
-  Serial.print(temperature);
-  Serial.print(separator);
-  Serial.println(weather_num);
+  // Serial.print(LM_state);
+  // Serial.print(separator);
+  // Serial.print(temperature);
+  // Serial.print(separator);
+  // Serial.println(weather_num);
 }
 
 void get_encoder_value() {
@@ -235,7 +253,7 @@ void get_encoder_value() {
     } else {
       counter = counter + encoder_brightness_step;
     }
-    // Serial.print(" | Counter: ");
+    // Serial.print("Counter: ");
     // Serial.println(counter);
   }
   lastStateCLK = currentStateCLK;
@@ -244,10 +262,11 @@ void get_encoder_value() {
   if (btnState == LOW) {
     if (millis() - lastButtonPress > 50) {
       // Serial.println("Button pressed!");
+      LM_state += 1;
+      if (LM_state>8){ LM_state = 0;}
     }
     lastButtonPress = millis();
   }
-  set_brightness_by_encoder();
 }
 
 void set_brightness_by_encoder() {
@@ -266,13 +285,11 @@ void set_brightness_by_encoder() {
 
 void rainbow() 
 {
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
   fill_rainbow( leds, NUM_LEDS, gHue, 7);
 }
 
 void rainbowWithGlitter() 
 {
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
   rainbow();
   addGlitter(80);
 }
@@ -286,7 +303,6 @@ void addGlitter( fract8 chanceOfGlitter)
 
 void confetti() 
 {
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
   fadeToBlackBy( leds, NUM_LEDS, 10);
   int pos = random16(NUM_LEDS);
   leds[pos] += CHSV( gHue + random8(64), 200, 255);
@@ -294,29 +310,17 @@ void confetti()
 
 void sinelon()
 {
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  int pos = beatsin16( 13, 0, NUM_LEDS-1 );
+  fadeToBlackBy( leds, NUM_LEDS, 1);
+  int pos = beatsin16( 13, 0, NUM_LEDS-1);
   leds[pos] += CHSV( gHue, 255, 192);
 }
 
-void bpm()
-{
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
-  uint8_t BeatsPerMinute = 62;
-  CRGBPalette16 palette = PartyColors_p;
-  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < NUM_LEDS; i++) { //9948
-    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
-  }
-}
 
 void juggle() {
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
   fadeToBlackBy( leds, NUM_LEDS, 20);
   uint8_t dothue = 0;
   for( int i = 0; i < 8; i++) {
     leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
-    dothue += 32;
+    dothue += 20;
   }
 }
