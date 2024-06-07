@@ -29,6 +29,14 @@ int currentStateCLK;
 int lastStateCLK;
 String currentDir = "";
 unsigned long lastButtonPress = 0;
+
+
+//---------------------датчик движения
+#define OUT 5
+
+int current_val_pir = 0;
+int state_pir = LOW;
+
 //---------------------
 
 String serialString = "";
@@ -102,6 +110,7 @@ void loop() {
   }
 
   set_LM_state();
+  set_pir_mode();
   FastLED.show();
 }
 
@@ -279,6 +288,26 @@ void set_brightness_by_encoder() {
   FastLED.setBrightness(BRIGHTNESS);
 }
 
+
+void set_pir_mode() {
+  current_val_pir = digitalRead(OUT);
+  if (current_val_pir == HIGH) {            
+    counter = 255;
+    if (state_pir == LOW) {
+      Serial.println("Smth moving");
+      state_pir = HIGH;
+    }
+  } 
+  else {
+    counter = 0;
+    if (state_pir == HIGH) {
+      Serial.println("No moving");
+      state_pir = LOW;
+    }
+  }
+  BRIGHTNESS = counter;
+  FastLED.setBrightness(BRIGHTNESS);
+}
 
 
 
