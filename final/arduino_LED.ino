@@ -32,7 +32,7 @@ unsigned long lastButtonPress = 0;
 
 
 //---------------------датчик движения
-#define OUT 5
+#define PIR_OUT 5
 
 int current_val_pir = 0;
 int state_pir = LOW;
@@ -68,6 +68,8 @@ void setup() {
   pinMode(DT, INPUT);
   pinMode(SW, INPUT_PULLUP);
   lastStateCLK = digitalRead(CLK);
+  
+  pinMode(PIR_OUT, INPUT);
 }
 
 void fillnoise8() {
@@ -290,7 +292,7 @@ void set_brightness_by_encoder() {
 
 
 void set_pir_mode() {
-  current_val_pir = digitalRead(OUT);
+  current_val_pir = digitalRead(PIR_OUT);
   if (current_val_pir == HIGH) {            
     counter = 255;
     if (state_pir == LOW) {
