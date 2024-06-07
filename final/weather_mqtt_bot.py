@@ -164,11 +164,21 @@ def find_COM_port():
             continue
     return arduino
 
+def send_serial(city):
+    LM_state = 0
+    # while True:
+    #    city = get_city()
+    #    print(city)
+    # LM_state = subscribe.simple(LM_topic, hostname=broker)
+    send_mqtt_and_weather(int(float(LM_state)), city)
+    # send_mqtt_and_weather(int(float(LM_state.payload)), city)
+
 
 broker = "broker.emqx.io"
 LM_topic = "leap_motion_states"
 
 LM_state = 0
+previous_LM_state = 0
 LM_states = ['Погода', 'Белый', 'Радуга', 'Синий', 'Конфетти', 'Красный', 'Синелон', 'Голубой', 'Джагл']
 
 client = mqtt_client.Client(f'client_{random.randint(10000, 99999)}')
@@ -185,16 +195,11 @@ previous_city='Москва'
 
 arduino = find_COM_port()
 
+while True:
+    city = 'Иркутск'
+    if previous_city!=city:
+        pass
+    LM_state = subscribe.simple(LM_topic, hostname=broker)
+    if previous_LM_state!=LM_state:
+        send_mqtt_and_weather(int(float(LM_state.payload)), city)
 
-LM_state = subscribe.simple(LM_topic, hostname=broker)
-send_mqtt_and_weather(int(float(LM_state.payload)), city)
-
-# run()
-def send_serial(city):
-    LM_state = 0
-    # while True:
-    #    city = get_city()
-    #    print(city)
-    # LM_state = subscribe.simple(LM_topic, hostname=broker)
-    send_mqtt_and_weather(int(float(LM_state)), city)
-    # send_mqtt_and_weather(int(float(LM_state.payload)), city)
